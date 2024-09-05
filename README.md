@@ -57,7 +57,7 @@ source .venv/bin/activate  # On Windows, use `.venv\Scripts\activate`</code></pr
 <ol>
     <li>Open the application in your web browser.</li>
     <li>Upload an image of a book page by selecting a file from your local device.</li>
-    <li>Click the "Upload" button to extract text and identify the book from the image.</li>
+    <li>Click the "Submit" button to extract text and identify the book from the image.</li>
     <li>The original image, extracted text, and the best matching book information will be displayed on the results page.</li>
 </ol>
 
@@ -79,13 +79,13 @@ source .venv/bin/activate  # On Windows, use `.venv\Scripts\activate`</code></pr
 <p>Contributions are welcome! Please fork the repository, create a new branch, and submit a pull request with your changes. For major changes, please open an issue first to discuss what you would like to change.</p>
 
 <h2>Deployment</h2>
-<p>The application can be deployed on various cloud platforms or local servers. For a scalable deployment, consider using platforms like Heroku or AWS.</p>
+<p>The application uses Docker for containerization, ensuring consistent environments across different platforms. Fly.io is used for deploying the application, providing a scalable and globally distributed infrastructure for web hosting..</p>
 
 <h2><a href="https://github.com/yourusername/ocr-bookfinder-web/blob/main/READCODE.md">Code Breakdown Here!</a></h2>
 
 <h3>Upload Image</h3>
 <p align="center">
-    <img src="https://i.imgur.com/tYxAQBd.png" alt="Upload Image">
+    <img src="https://i.imgur.com/xAIAvWD.png" alt="Upload Image">
 </p>
 <p>The main page allows the user to upload an image containing a book page. The application then processes this image to extract the text and identify the book.</p>
 
@@ -93,5 +93,7 @@ source .venv/bin/activate  # On Windows, use `.venv\Scripts\activate`</code></pr
 
 <h3>Processed Image and Results</h3>
 <p align="center">
-    <img src="https://i.imgur.com/4XBR3YJ.png" alt="Results">
+    <img src="https://i.imgur.com/ZhSuRkE.png" alt="Results">
 </p>
+<p>After processing, the application displays the original image, the extracted text, and the best matching book information.</p>
+
