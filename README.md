@@ -93,7 +93,7 @@ source .venv/bin/activate  # On Windows, use `.venv\Scripts\activate`</code></pr
 
 <h3>Processed Image and Results</h3>
 <p align="center">
-    <img src="https://i.imgur.com/ZhSuRkE.png" alt="Results">
+    <img src="https://i.imgur.com/bbSfVCY.png" alt="Results">
 </p>
 <p>After processing, the application displays the original image, the extracted text, and the best matching book information.</p>
 
