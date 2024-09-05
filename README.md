@@ -1,13 +1,13 @@
 
-<h1 align="center">OCR Translator Web</h1>
+<h1 align="center">OCR Bookfinder Web</h1>
 
 <p align="center">
-  <a href="https://youtu.be/nas4T9-hjTs"><img src="https://i.imgur.com/KCK0WYy.gif" alt="YouTube Demonstration" width="800"></a>
+  <a href="https://youtu.be/U1GcrE8YPWU"><img src="https://i.imgur.com/OTuB77Y.gif" alt="YouTube Demonstration" width="800"></a>
 </p>
 
-<p align="center">A web application that extracts text from images and translates it into different languages, powered by Flask, Tesseract, and Azure Translation API.</p>
+<p align="center">A web application that extracts text from book pages and finds what book it is from, powered by Flask, Tesseract, and Google Books API.</p>
 
-<h3>In case you want to access my web application, it is hosted here: <a href="https://ocr-translation.fly.dev/">https://ocr-translation.fly.dev/</a></h3>
+<h3>In case you want to access my web application, it is hosted here: <a href="https://ocr-bookfinder.fly.dev/">https://ocr-bookfinder.fly.dev/</a></h3>
 
 <h2>Description</h2>
 
