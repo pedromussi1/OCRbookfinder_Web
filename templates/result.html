@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Book Recognition Result</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            padding: 0;
+            color: #333;
+            background-color: #f4f4f4;
+        }
+        h1 {
+            color: #0056b3;
+            text-align: center;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .result-image {
+            display: block;
+            margin: 0 auto;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .text-content {
+            margin: 20px 0;
+        }
+        pre {
+            background: #f9f9f9;
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+        }
+        .button {
+            display: inline-block;
+            padding: 10px 20px;
+            border: none;
+            background-color: #0056b3;
+            color: white;
+            cursor: pointer;
+            border-radius: 5px;
+            text-decoration: none;
+            text-align: center;
+            margin-top: 20px;
+        }
+        .button:hover {
+            background-color: #004494;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Text Recognition Result</h1>
+        <div class="text-content">
+            <p><strong>Extracted Text:</strong></p>
+            <pre>{{ text }}</pre>
+        </div>
+        <div class="text-content">
+            <p><strong>Best Match:</strong></p>
+            <p>{{ best_match }}</p>
+        </div>
+        <img src="{{ url_for('static', filename='uploads/' + image) }}" alt="Uploaded Image" class="result-image" width="400">
+        <br>
+        <a href="/" class="button">Go Back</a>
+    </div>
+</body>
+</html>
