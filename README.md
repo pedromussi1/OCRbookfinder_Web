@@ -81,7 +81,7 @@ source .venv/bin/activate  # On Windows, use `.venv\Scripts\activate`</code></pr
 <h2>Deployment</h2>
 <p>The application uses Docker for containerization, ensuring consistent environments across different platforms. Fly.io is used for deploying the application, providing a scalable and globally distributed infrastructure for web hosting..</p>
 
-<h2><a href="https://github.com/yourusername/ocr-bookfinder-web/blob/main/READCODE.md">Code Breakdown Here!</a></h2>
+<h2><a href="https://github.com/pedromussi/ocr-bookfinder-web/blob/main/READCODE.md">Code Breakdown Here!</a></h2>
 
 <h3>Upload Image</h3>
 <p align="center">
