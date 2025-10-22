@@ -1,7 +1,6 @@
 <h1>Code Breakdown</h1> <p>The OCR BookFinder Web project is a web-based application designed to recognize text from images of book pages and identify the book based on the extracted text. The application utilizes Tesseract OCR for text extraction, OpenCV for image preprocessing, and the Google Books API for book identification. Users can upload an image of a book page, and the system will process it to display the extracted text and the best matching book from the Google Books database. This tool is particularly useful for identifying books based on pages or specific text snippets captured via images.</p> <h2>Text Extraction from Image</h2> <p>The extract_text function handles the OCR process using the Tesseract OCR engine. The process involves:</p> <p>Reading the Image: The image is read using OpenCV.</p> <p>Grayscale Conversion: The image is converted to grayscale to improve OCR accuracy.</p> <p>Text Extraction: Tesseract OCR is used to extract text from the grayscale image.</p>
 
-```
-py
+```py
 app = Flask(__name__)
 
 # Path to the Tesseract executable
@@ -50,8 +49,7 @@ def get_best_match(extracted_text):
 
 <h2>Book Identification using Google Books API</h2> <p>The get_best_match function is responsible for identifying the book that best matches the extracted text. The process involves:</p> <p>Sending a Request to Google Books API: The extracted text is used as a query to search for books.</p> <p>Processing the Response: The response is parsed to find the book with the highest relevance.</p> <p>Returning the Best Match: The title and authors of the best matching book are returned.</p>
 
-```
-py
+```py
 import requests
 
 def search_book(text):
@@ -84,8 +82,7 @@ def get_best_match(extracted_text):
 
 <h2>Main Function</h2> <p>The main function integrates both components. It takes an image path as input, extracts text from the image, and finds the best matching book. The extracted text and the best match are printed to the console.</p>
 
-```
-py
+```py
 
 def get_best_match(extracted_text):
     books = search_book(extracted_text)
