@@ -1,112 +1,100 @@
-<h1>Code Breakdown</h1>
+<h1>Code Breakdown</h1> <p>The OCR BookFinder Web project is a web-based application designed to recognize text from images of book pages and identify the book based on the extracted text. The application utilizes Tesseract OCR for text extraction, OpenCV for image preprocessing, and the Google Books API for book identification. Users can upload an image of a book page, and the system will process it to display the extracted text and the best matching book from the Google Books database. This tool is particularly useful for identifying books based on pages or specific text snippets captured via images.</p> <h2>Text Extraction from Image</h2> <p>The extract_text function handles the OCR process using the Tesseract OCR engine. The process involves:</p> <p>Reading the Image: The image is read using OpenCV.</p> <p>Grayscale Conversion: The image is converted to grayscale to improve OCR accuracy.</p> <p>Text Extraction: Tesseract OCR is used to extract text from the grayscale image.</p>
+py
+app = Flask(__name__)
 
-<p>The Emotion Detector from Voice project is an AI-powered application designed to classify human emotions from voice recordings. The system extracts audio features such as MFCCs, chroma, mel spectrograms, spectral contrast, and tonnetz from `.wav` files. It uses machine learning models (Random Forest or MLPClassifier) to predict emotions like happy, sad, angry, neutral, and more. Users can upload a voice recording through a Streamlit interface to see the detected emotion and its probability distribution.</p>
+# Path to the Tesseract executable
+pytesseract.pytesseract.tesseract_cmd = '/usr/bin/tesseract'
 
-<h2>Audio Feature Extraction and Model Training (train_model.py)</h2>
+UPLOAD_FOLDER = 'static/uploads'
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-<p>The <b>train_model.py</b> file handles dataset loading, feature extraction, model training, and saving the trained model. The process includes:</p>
+def extract_text(image_path):
+    image = cv2.imread(image_path)
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    custom_config = r'--oem 3 --psm 6'
+    text = pytesseract.image_to_string(gray, config=custom_config)
+    return text.strip()
 
-<p>Loading Audio: Each `.wav` file in the dataset is read using librosa.</p>
+def preprocess_text(text):
+    import re
+    import string
+    text = re.sub(f"[{re.escape(string.punctuation)}]", "", text)
+    text = text.lower()
+    text = " ".join(text.split())
+    return text
 
-<p>Feature Extraction: MFCCs, chroma, mel spectrogram, spectral contrast, and tonnetz features are extracted and concatenated into a single feature vector.</p> 
+def search_book(text):
+    url = 'https://www.googleapis.com/books/v1/volumes'
+    params = {'q': text, 'maxResults': 10}
+    response = requests.get(url, params=params)
+    if response.status_code == 200:
+        data = response.json()
+        return data.get('items', [])
+    else:
+        print(f"Error: {response.status_code}")
+        return []
 
-<p>Training the Model: A RandomForestClassifier is trained on the extracted features to predict emotion labels.</p> 
+def get_best_match(extracted_text):
+    books = search_book(extracted_text)
+    if not books:
+        return "No matches found."
+    best_match = max(books, key=lambda x: x.get('relevance', 0))
+    volume_info = best_match.get('volumeInfo', {})
+    title = volume_info.get('title', 'No title')
+    authors = volume_info.get('authors', ['Unknown author'])
+    return f"{title}, Authors: {', '.join(authors)}"
+<h2>Book Identification using Google Books API</h2> <p>The get_best_match function is responsible for identifying the book that best matches the extracted text. The process involves:</p> <p>Sending a Request to Google Books API: The extracted text is used as a query to search for books.</p> <p>Processing the Response: The response is parsed to find the book with the highest relevance.</p> <p>Returning the Best Match: The title and authors of the best matching book are returned.</p>
+py
+import requests
 
-<p>Saving the Model: The trained model is saved as <code>model.pkl</code> for later use in emotion detection.</p>
+def search_book(text):
+    url = 'https://www.googleapis.com/books/v1/volumes'
+    params = {
+        'q': text,
+        'maxResults': 10,
+    }
+    response = requests.get(url, params=params)
+    if response.status_code == 200:
+        data = response.json()
+        return data.get('items', [])
+    else:
+        print(f"Error: {response.status_code}")
+        return []
 
-```py
+def get_best_match(extracted_text):
+    books = search_book(extracted_text)
+    if not books:
+        return "No matches found."
 
-def extract_features(file_path):
-    X, sample_rate = librosa.load(file_path, res_type='kaiser_fast')
-    mfccs = np.mean(librosa.feature.mfcc(y=X, sr=sample_rate, n_mfcc=40).T, axis=0)
-    chroma = np.mean(librosa.feature.chroma_stft(y=X, sr=sample_rate).T, axis=0)
-    mel = np.mean(librosa.feature.melspectrogram(y=X, sr=sample_rate).T, axis=0)
-    contrast = np.mean(librosa.feature.spectral_contrast(y=X, sr=sample_rate).T, axis=0)
-    tonnetz = np.mean(librosa.feature.tonnetz(y=librosa.effects.harmonic(X), sr=sample_rate).T, axis=0)
-    return np.hstack([mfccs, chroma, mel, contrast, tonnetz])
+    # Find the best match based on the highest relevance
+    best_match = max(books, key=lambda x: x.get('relevance', 0))
 
-def train_and_save_model(dataset_path, model_output_path="model.pkl"):
-    X, y = load_data(dataset_path)
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-    model = RandomForestClassifier(n_estimators=200, random_state=42)
-    model.fit(X_train, y_train)
-    joblib.dump(model, model_output_path)
+    volume_info = best_match.get('volumeInfo', {})
+    title = volume_info.get('title', 'No title')
+    authors = volume_info.get('authors', ['Unknown author'])
+    return f"{title}, Authors: {', '.join(authors)}"
+<h2>Main Function</h2> <p>The main function integrates both components. It takes an image path as input, extracts text from the image, and finds the best matching book. The extracted text and the best match are printed to the console.</p>
+py
 
-```
+def get_best_match(extracted_text):
+    books = search_book(extracted_text)
+    if not books:
+        return "No matches found."
 
-<h2>Dataset Processing and Training (emotion_detect.py)</h2> 
+    # Find the best match based on the highest relevance
+    best_match = max(books, key=lambda x: x.get('relevance', 0))
 
-<p>The <b>emotion_detect.py</b> script provides a more flexible training pipeline using an MLPClassifier. It also supports selective emotion categories and evaluates model performance in detail.</p> 
+    volume_info = best_match.get('volumeInfo', {})
+    title = volume_info.get('title', 'No title')
+    authors = volume_info.get('authors', ['Unknown author'])
+    return f"{title}, Authors: {', '.join(authors)}"
 
-<p>Loading Dataset: Recursively reads `.wav` files and maps file name codes to emotion labels.</p> 
+def main(image_path):
+    # Extract text from the image
+    extracted_text = extract_text(image_path)
+    print(f"Extracted Text: \n\n{extracted_text}\n")
 
-<p>Feature Extraction: MFCC, chroma, and mel spectrogram features are extracted.</p> 
-
-<p>Model Training: An MLPClassifier is trained to predict emotions from audio features.</p> 
-
-<p>Evaluation: Prints accuracy, classification report, and confusion matrix.</p> 
-
-<p>Model Saving: Saves the trained model to <code>model.pkl</code> using joblib.</p>
-
-```py
-
-def extract_features(file_path, mfcc=True, chroma=True, mel=True):
-    X, sample_rate = librosa.load(file_path, sr=None)
-    result = np.array([])
-    if mfcc:
-        result = np.hstack((result, np.mean(librosa.feature.mfcc(y=X, sr=sample_rate, n_mfcc=40).T, axis=0)))
-    if chroma:
-        stft = np.abs(librosa.stft(X))
-        result = np.hstack((result, np.mean(librosa.feature.chroma_stft(S=stft, sr=sample_rate).T, axis=0)))
-    if mel:
-        result = np.hstack((result, np.mean(librosa.feature.melspectrogram(y=X, sr=sample_rate).T, axis=0)))
-    return result
-
-model = MLPClassifier(hidden_layer_sizes=(300,), learning_rate='adaptive', max_iter=500)
-model.fit(X_train, y_train)
-joblib.dump(model, "model.pkl")
-
-```
-
-<h2>Streamlit Web Application (emotion_app.py)</h2> 
-
-<p>The <b>emotion_app.py</b> file provides a user-friendly web interface using Streamlit. Users upload `.wav` audio files to detect emotions. The process involves:</p> 
-
-<p>File Upload: Users upload their audio recording.</p> 
-
-<p>Feature Extraction: The same MFCC, chroma, and mel features used during training are extracted.</p> 
-
-<p>Emotion Prediction: The trained model predicts the most likely emotion and calculates probabilities for all possible emotions.</p> 
-
-<p>Visualization: The predicted emotion and probability distribution are displayed using a bar chart.</p>
-
-```py
-
-def predict_emotion(file_path):
-    features = extract_features(file_path).reshape(1, -1)
-    prediction = model.predict(features)[0]
-    probabilities = model.predict_proba(features)[0]
-    prob_dict = {label: prob for label, prob in zip(model.classes_, probabilities)}
-    return prediction, prob_dict
-
-uploaded_file = st.file_uploader("Upload your audio file", type=["wav"])
-if uploaded_file is not None:
-    st.audio(uploaded_file, format="audio/wav")
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
-        tmp.write(uploaded_file.read())
-        temp_path = tmp.name
-    prediction, prob_dict = predict_emotion(temp_path)
-    st.success(f"Detected Emotion: **{prediction.upper()}** 🎯")
-    st.bar_chart(pd.DataFrame(prob_dict, index=[0]).T.rename(columns={0: "Probability"}))
-
-```
-
-<h2>Deployment of Emotion Detector Application</h2> 
-
-<h3>Dockerfile</h3> 
-
-<p>The Dockerfile sets up the environment for running the Streamlit application:</p> 
-
-<pre><code> FROM python:3.10-slim RUN apt-get update && apt-get install -y ffmpeg libsndfile1 && rm -rf /var/lib/apt/lists/* WORKDIR /app COPY requirements.txt . RUN pip install --no-cache-dir -r requirements.txt COPY . . EXPOSE 8501 CMD ["streamlit", "run", "emotion_app.py"] </code></pre> <h3>Fly.io Configuration (fly.toml)</h3> <pre><code> app = 'emotion-detector' primary_region = 'dfw' [build] [http_service] internal_port = 8501 force_https = true auto_stop_machines = 'stop' auto_start_machines = true min_machines_running = 0 processes = ['app'] [[vm]] memory = '2gb' cpu_kind = 'shared' cpus = 1 </code></pre>
-
-<h2>Conclusion</h2> <p>This application combines audio signal processing, feature extraction, machine learning, and a web interface to detect human emotions from voice recordings. It demonstrates a complete end-to-end workflow from dataset preparation and model training to real-time prediction and visualization using Streamlit.</p> <div style="display: flex; justify-content: center; align-items: center;"> <img src="https://i.imgur.com/QrOq6sO.gif" alt="Voice Analysis" style="width: auto; height: 300px; margin: 20px;"> <img src="https://i.imgur.com/ENo2Dxd.png" alt="Emotion Detection UI" style="width: auto; height: 300px; margin: 20px;"> </div>
+    # Get the best matching book using the Google Books API
+    best_match = get_best_match(extracted_text)
+    print(f"Best Match: {best_match}")
+<h2>Deployment of OCR Bookfinder Application</h2> <h3>Dockerfile</h3> <p>The Dockerfile is used to containerize the OCR BookFinder application. It defines the environment and dependencies required for running the application:</p> <pre><code> # Use the official Python image FROM python:3.10-slim # Install Tesseract, OpenCV dependencies, and other necessary libraries RUN apt-get update && apt-get install -y \ tesseract-ocr \ libtesseract-dev \ libgl1-mesa-glx \ libglib2.0-0 \ && rm -rf /var/lib/apt/lists/* # Set the working directory WORKDIR /app # Copy and install dependencies COPY requirements.txt . RUN pip install --no-cache-dir -r requirements.txt # Copy the rest of the application code COPY . . # Set environment variables ENV FLASK_APP=app.py # Expose port 5000 EXPOSE 5000 # Run the Flask app CMD ["flask", "run", "--host=0.0.0.0"] </code></pre> <h3>Fly.io Configuration (fly.toml)</h3> <p>The <code>fly.toml</code> file is used to configure the deployment of the Docker containerized application on Fly.io:</p> <pre><code> # fly.toml app configuration file generated for ocr-bookfinder on 2024-09-05T12:38:31-04:00 # # See https://fly.io/docs/reference/configuration/ for information about how to use this file. # app = 'ocr-bookfinder' primary_region = 'dfw' [build] [http_service] internal_port = 5000 force_https = true auto_stop_machines = 'stop' auto_start_machines = true min_machines_running = 0 processes = ['app'] [[vm]] memory = '1gb' cpu_kind = 'shared' cpus = 1 </code></pre> <h2>Conclusion</h2> <p>This program effectively combines OCR and web API technologies to identify the book corresponding to text extracted from an image. It leverages Tesseract OCR for text extraction and the Google Books API for book identification. This approach can be useful for various applications such as digitizing and cataloging printed materials.</p> <div style="display: flex; justify-content: center; align-items: center;"> <img src="https://i.imgur.com/OTuB77Y.gif" alt="BookPage" style="width: auto; height: 300px; margin: 20px;"> <img src="https://i.imgur.com/bbSfVCY.png" alt="TranslatingText" style="width: auto; height: 300px; margin: 20px;">
