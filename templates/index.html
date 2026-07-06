@@ -52,6 +52,10 @@
 <body>
     <h1>Book Recognition</h1>
 
+    {% if error %}
+    <p style="color: #b00020;">{{ error }}</p>
+    {% endif %}
+
     <form action="/" method="post" enctype="multipart/form-data">
         <label for="file">Upload an image:</label>
         <input type="file" id="file" name="file" required>

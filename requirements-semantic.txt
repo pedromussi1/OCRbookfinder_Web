@@ -1,0 +1,4 @@
+# Optional: enables the 'semantic' and 'hybrid' ranking rungs.
+# Pulls in PyTorch (large). Install with:  pip install -r requirements-semantic.txt
+-r requirements.txt
+sentence-transformers>=3.0,<4.0
