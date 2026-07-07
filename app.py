@@ -1,73 +1,60 @@
-from flask import Flask, render_template, request, redirect, url_for
-import cv2
-import pytesseract
+"""Flask app: upload a book photo, get the identified title.
+
+Rewritten to use the ``bookfinder`` pipeline (cross-platform Tesseract, OpenCV
+preprocessing, and a real ranker) instead of the original grayscale-only OCR with the
+broken ``max(..., key=lambda x: x.get('relevance', 0))`` ranking that always returned
+Google's first hit.
+"""
+
 import os
-import requests
+import uuid
+
+from flask import Flask, render_template, request
 from werkzeug.utils import secure_filename
+
+from bookfinder import BookFinder, PipelineConfig
 
 app = Flask(__name__)
 
-# Path to the Tesseract executable
-pytesseract.pytesseract.tesseract_cmd = '/usr/bin/tesseract'
+UPLOAD_FOLDER = "static/uploads"
+ALLOWED_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".bmp"}
+MAX_CONTENT_LENGTH = 10 * 1024 * 1024  # 10 MB cap on uploads
 
-UPLOAD_FOLDER = 'static/uploads'
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
+app.config["MAX_CONTENT_LENGTH"] = MAX_CONTENT_LENGTH
 
-def extract_text(image_path):
-    image = cv2.imread(image_path)
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    custom_config = r'--oem 3 --psm 6'
-    text = pytesseract.image_to_string(gray, config=custom_config)
-    return text.strip()
+# Default to the fuzzy ranker (fast, no torch); set BOOKFINDER_RANKER to override.
+finder = BookFinder(PipelineConfig(ranker=os.environ.get("BOOKFINDER_RANKER", "fuzzy")))
 
-def preprocess_text(text):
-    import re
-    import string
-    text = re.sub(f"[{re.escape(string.punctuation)}]", "", text)
-    text = text.lower()
-    text = " ".join(text.split())
-    return text
 
-def search_book(text):
-    url = 'https://www.googleapis.com/books/v1/volumes'
-    params = {'q': text, 'maxResults': 10}
-    response = requests.get(url, params=params)
-    if response.status_code == 200:
-        data = response.json()
-        return data.get('items', [])
-    else:
-        print(f"Error: {response.status_code}")
-        return []
+def _allowed(filename: str) -> bool:
+    return os.path.splitext(filename)[1].lower() in ALLOWED_EXTENSIONS
 
-def get_best_match(extracted_text):
-    books = search_book(extracted_text)
-    if not books:
-        return "No matches found."
-    best_match = max(books, key=lambda x: x.get('relevance', 0))
-    volume_info = best_match.get('volumeInfo', {})
-    title = volume_info.get('title', 'No title')
-    authors = volume_info.get('authors', ['Unknown author'])
-    return f"{title}, Authors: {', '.join(authors)}"
 
-@app.route('/', methods=['GET', 'POST'])
+@app.route("/", methods=["GET", "POST"])
 def index():
-    if request.method == 'POST':
-        if 'file' in request.files:
-            file = request.files['file']
-            if file:
-                filename = secure_filename(file.filename)
-                file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-                file.save(file_path)
+    if request.method == "POST":
+        file = request.files.get("file")
+        if not file or not file.filename:
+            return render_template("index.html", error="Please choose an image to upload.")
+        if not _allowed(file.filename):
+            return render_template("index.html", error="Unsupported file type.")
 
-                text = extract_text(file_path)
-                processed_text = preprocess_text(text)
-                best_match = get_best_match(processed_text)
+        # Unique, safe name so concurrent uploads never collide or overwrite.
+        ext = os.path.splitext(secure_filename(file.filename))[1].lower()
+        stored_name = f"{uuid.uuid4().hex}{ext}"
+        file_path = os.path.join(app.config["UPLOAD_FOLDER"], stored_name)
+        file.save(file_path)
 
-                return render_template('result.html', text=text, best_match=best_match, image=filename)
+        result = finder.identify(file_path)
+        return render_template(
+            "result.html", text=result.raw_text, best_match=result.summary(), image=stored_name
+        )
 
-    return render_template('index.html')
+    return render_template("index.html")
 
-if __name__ == '__main__':
-    if not os.path.exists(UPLOAD_FOLDER):
-        os.makedirs(UPLOAD_FOLDER)
-    app.run(debug=True)
+
+if __name__ == "__main__":
+    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+    # debug defaults OFF; enable explicitly with FLASK_DEBUG=1 for local dev only.
+    app.run(debug=os.environ.get("FLASK_DEBUG") == "1")

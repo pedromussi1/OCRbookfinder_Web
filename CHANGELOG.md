@@ -1,0 +1,33 @@
+# Changelog
+
+All notable changes to this project are documented here.
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [2.0.0] - 2026-07-06
+
+Complete rewrite: from a ~70-line single-file script into a reusable pipeline plus a
+measured retrieval experiment.
+
+### Added
+- `bookfinder/` pipeline package: preprocess (OpenCV) → OCR (Tesseract) → search → rank.
+- Pluggable rankers: `baseline`, `fuzzy` (RapidFuzz), `semantic` (sentence-transformers),
+  and `hybrid`.
+- `eval.py` ablation harness reporting **Recall@1 / Recall@5 / MRR**.
+- Keyless **Open Library** search backend (plus optional Google Books) with on-disk caching.
+- Configurable OpenCV preprocessing (upscale, denoise, Otsu threshold, deskew).
+- `pytest` suite (9 tests), pinned `requirements.txt` (+ optional `requirements-semantic.txt`).
+- `DATASET.md` collection guide and a synthetic demo-cover generator.
+
+### Fixed
+- **Broken ranking**: `max(books, key=lambda x: x.get('relevance', 0))` referenced a field
+  that does not exist, so it always returned the search engine's first hit. Real ranking now
+  lifts exact-match Recall@1 from ~58% to 100% on the demo set.
+- Hardcoded Linux Tesseract path (`/usr/bin/tesseract`) → cross-platform discovery.
+- `debug=True` in production; added upload type/size validation and unique filenames.
+
+### Changed
+- README rewritten around the experiment, with an honest results table and documented
+  limitations (interior-page images, synthetic demo covers).
+
+[2.0.0]: https://github.com/pedromussi1/OCRbookfinder_Web/releases/tag/v2.0.0
