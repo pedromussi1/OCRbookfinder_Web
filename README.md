@@ -30,11 +30,20 @@ evaluation harness so the improvements are **measured, not asserted**:
 ## Pipeline
 
 ```
-image ──▶ preprocess (OpenCV) ──▶ OCR (Tesseract) ──▶ search (Open Library) ──▶ rank ──▶ best match
+image ──▶ preprocess (OpenCV) ──▶ OCR (Tesseract) ──▶ search ──▶ rank ──▶ best match
 ```
 
 Each stage lives in its own module under [`bookfinder/`](bookfinder/) so the experiment
 can swap any stage independently.
+
+**Two search modes, chosen automatically:**
+- **Cover photo** → Open Library *metadata* search on the OCR'd title/author, then fuzzy /
+  semantic / hybrid ranking.
+- **Interior page photo** → when metadata search finds nothing, it falls back to Open
+  Library *full-text* "search inside." Because that endpoint needs error-free tokens, the
+  OCR text is split into many short overlapping windows; the correct book accumulates hits
+  across them, and `AggregateRanker` sums a book's editions so it beats one-off quotation
+  anthologies. All keyless — no API key or quota.
 
 ## The experiment
 
@@ -117,8 +126,9 @@ python -m pytest -q
 
 ## Known limitations
 
-- Metadata search (Open Library) matches **titles/authors**, not full text — so a photo of
-  an *interior prose page* won't retrieve its book. This is a cover/title-identification
-  tool; full-text page matching would require a full-text backend (e.g. Google Books).
+- Full-text page identification depends on the book being in Open Library's scanned
+  full-text index; very obscure or unscanned books may not be found.
+- Heavy OCR errors reduce the number of clean windows that match; more of the page in frame
+  (more windows) makes identification more robust.
 - Synthetic demo covers overstate the easy case; real-photo numbers will be lower and are
   the honest measure.

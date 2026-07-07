@@ -23,6 +23,9 @@ class PipelineConfig:
     provider: str = "openlibrary"   # keyless default; 'google' needs GOOGLE_BOOKS_API_KEY
     offline: bool = False
     max_results: int = 10
+    # When metadata search finds nothing (e.g. a photo of an interior page rather than a
+    # cover), fall back to full-text "search inside" + edition aggregation.
+    fulltext_fallback: bool = True
 
 
 @dataclass
@@ -62,10 +65,29 @@ class BookFinder:
         self.client = client or make_client(
             self.config.provider, offline=self.config.offline, max_results=self.config.max_results
         )
+        # Built lazily on first fallback so the common (cover) path pays nothing.
+        self._fulltext_client: SearchClient | None = None
+
+    def _fulltext(self) -> SearchClient:
+        if self._fulltext_client is None:
+            self._fulltext_client = make_client(
+                "openlibrary_fulltext", offline=self.config.offline,
+                max_results=self.config.max_results,
+            )
+        return self._fulltext_client
 
     def identify(self, image_path: str) -> BookResult:
         raw_text = extract_text(image_path, self.config.preprocess)
         query = normalize_query(raw_text)
+
         candidates = self.client.search(query)
-        ranked = self.ranker.rank(query, candidates)
+        if candidates:
+            ranked = self.ranker.rank(query, candidates)
+        elif self.config.fulltext_fallback:
+            # No metadata match — likely an interior page. Search full text and aggregate
+            # editions so the real book beats one-off quotation anthologies.
+            fulltext = self._fulltext().search(query)
+            ranked = _resolve_ranker("aggregate").rank(query, fulltext)
+        else:
+            ranked = []
         return BookResult(raw_text=raw_text, query=query, ranked=ranked)

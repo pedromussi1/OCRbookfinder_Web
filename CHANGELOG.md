@@ -4,6 +4,21 @@ All notable changes to this project are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2026-07-06
+
+### Added
+- **Interior-page identification** via Open Library full-text "search inside", used
+  automatically when metadata search finds no cover match. The OCR text is split into short
+  overlapping windows (robust to OCR errors, which otherwise zero a full-text query), and a
+  new `AggregateRanker` sums a book's editions/window-hits so the real book outranks
+  quotation anthologies. Keyless — no API key or quota.
+- `openlibrary_fulltext` search provider and `aggregate` ranker.
+
+### Fixed
+- Regression from 2.0.0: photos of interior book pages returned "No matches found" because
+  the default metadata backend only matches titles/authors. Page photos now resolve again
+  (verified on Dune, The Iliad, and The Art of War pages).
+
 ## [2.0.0] - 2026-07-06
 
 Complete rewrite: from a ~70-line single-file script into a reusable pipeline plus a
@@ -30,4 +45,5 @@ measured retrieval experiment.
 - README rewritten around the experiment, with an honest results table and documented
   limitations (interior-page images, synthetic demo covers).
 
+[2.1.0]: https://github.com/pedromussi1/OCRbookfinder_Web/releases/tag/v2.1.0
 [2.0.0]: https://github.com/pedromussi1/OCRbookfinder_Web/releases/tag/v2.0.0

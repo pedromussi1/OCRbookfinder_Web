@@ -17,6 +17,7 @@ straightforward — no index bookkeeping.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 
 from rapidfuzz import fuzz
@@ -126,9 +127,42 @@ class HybridRanker(BaseRanker):
         return [w * f + (1 - w) * s for f, s in zip(fuzzy, semantic)]
 
 
+def _norm_title(title: str) -> str:
+    """Normalize a title for grouping editions (drop punctuation + a leading article)."""
+    t = re.sub(r"[^\w\s]", " ", title.lower())
+    t = " ".join(t.split())
+    return re.sub(r"^(the|a|an)\s+", "", t)
+
+
+class AggregateRanker(BaseRanker):
+    """For full-text results: group candidates by title and sum each group's relevance.
+
+    A book that genuinely contains the passage shows up as several editions; summing them
+    outweighs one-off quotation anthologies that merely quote the same line. Returns one
+    representative (highest-scoring edition) per title, ordered by aggregate relevance.
+    """
+
+    name = "aggregate"
+
+    def rank(self, query: str, candidates: list[Candidate]) -> list[ScoredCandidate]:
+        groups: dict[str, list[Candidate]] = {}
+        for c in candidates:
+            groups.setdefault(_norm_title(c.title), []).append(c)
+        scored = [
+            ScoredCandidate(
+                max(members, key=lambda m: m.relevance),
+                sum(m.relevance for m in members),
+            )
+            for members in groups.values()
+        ]
+        scored.sort(key=lambda s: s.score, reverse=True)
+        return scored
+
+
 RANKERS: dict[str, type[BaseRanker]] = {
     "baseline": BaselineRanker,
     "fuzzy": FuzzyRanker,
     "semantic": SemanticRanker,
     "hybrid": HybridRanker,
+    "aggregate": AggregateRanker,
 }
