@@ -16,6 +16,7 @@ import hashlib
 import json
 import os
 import time
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict, dataclass
 
 import requests
@@ -84,9 +85,13 @@ class SearchClient:
             raise LookupError(f"Cache miss in offline mode for query: {query!r}")
 
         candidates = self._fetch(query)
+        self._write_cache(path, candidates)
+        return candidates
+
+    def _write_cache(self, path: str, candidates: list[Candidate]) -> None:
+        os.makedirs(os.path.dirname(path), exist_ok=True)  # survive runtime /tmp cleanup
         with open(path, "w", encoding="utf-8") as fh:
             json.dump([c.to_dict() for c in candidates], fh)
-        return candidates
 
     def _fetch(self, query: str) -> list[Candidate]:
         raise NotImplementedError
@@ -183,9 +188,10 @@ class OpenLibraryFullTextClient(SearchClient):
     _WINDOW_STRIDE = 4      # overlap step between windows
     _MAX_WINDOWS = 15       # cap API calls per identification
     _MAX_WORDS = 120        # only scan this far into the page
+    _CONCURRENCY = 8        # window queries to run in parallel (they are independent I/O)
 
     def search(self, query: str) -> list[Candidate]:
-        """Windowed full-text search: many short queries, results concatenated."""
+        """Windowed full-text search: many short queries, run concurrently."""
         words = query.split()
         if not words:
             return []
@@ -199,9 +205,12 @@ class OpenLibraryFullTextClient(SearchClient):
         if not windows:  # text shorter than one window
             windows = [" ".join(words)]
 
+        # The window queries are independent network calls, so fan them out; this turns
+        # ~15 sequential requests (10+ seconds) into a couple of concurrent batches.
         out: list[Candidate] = []
-        for window in windows:
-            out.extend(self._search_window(window))
+        with ThreadPoolExecutor(max_workers=min(self._CONCURRENCY, len(windows))) as pool:
+            for result in pool.map(self._search_window, windows):
+                out.extend(result)
         return out
 
     def _search_window(self, window: str) -> list[Candidate]:
@@ -213,8 +222,7 @@ class OpenLibraryFullTextClient(SearchClient):
         if self.offline:
             return []  # resilient: a partial cache still yields an aggregate answer
         candidates = self._fetch(window)
-        with open(path, "w", encoding="utf-8") as fh:
-            json.dump([c.to_dict() for c in candidates], fh)
+        self._write_cache(path, candidates)
         return candidates
 
     def _fetch(self, window: str) -> list[Candidate]:
