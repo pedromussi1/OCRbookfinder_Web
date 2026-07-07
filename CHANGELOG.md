@@ -4,6 +4,18 @@ All notable changes to this project are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.0] - 2026-07-07
+
+### Added
+- Redesigned web UI: responsive, dark-mode-aware layout with drag-and-drop upload, image
+  preview, a loading state during search, and a cleaner results page.
+- `Dockerfile` (+ `.dockerignore`) for containerized hosting (Hugging Face Spaces / any
+  Docker host); installs Tesseract and serves via gunicorn on port 7860.
+- `BOOKFINDER_CACHE_DIR` environment override for the response cache (writable path when hosted).
+
+### Changed
+- The upload directory is now ensured at import time so the app works under gunicorn.
+
 ## [2.1.0] - 2026-07-06
 
 ### Added
@@ -45,5 +57,6 @@ measured retrieval experiment.
 - README rewritten around the experiment, with an honest results table and documented
   limitations (interior-page images, synthetic demo covers).
 
+[2.2.0]: https://github.com/pedromussi1/OCRbookfinder_Web/releases/tag/v2.2.0
 [2.1.0]: https://github.com/pedromussi1/OCRbookfinder_Web/releases/tag/v2.1.0
 [2.0.0]: https://github.com/pedromussi1/OCRbookfinder_Web/releases/tag/v2.0.0

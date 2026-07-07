@@ -20,7 +20,10 @@ from dataclasses import asdict, dataclass
 
 import requests
 
-_CACHE_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "cache")
+# Cache location; override with BOOKFINDER_CACHE_DIR (e.g. a writable /tmp path when hosted).
+_CACHE_DIR = os.environ.get("BOOKFINDER_CACHE_DIR") or os.path.join(
+    os.path.dirname(os.path.dirname(__file__)), "data", "cache"
+)
 # Search APIs reject/ignore very long queries; a distinctive prefix is enough.
 _MAX_QUERY_CHARS = 300
 

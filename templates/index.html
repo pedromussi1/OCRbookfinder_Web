@@ -1,65 +1,90 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Book Recognition</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-            padding: 0;
-            color: #333;
-        }
-        h1 {
-            color: #0056b3;
-        }
-        form {
-            margin-bottom: 20px;
-        }
-        input[type="file"] {
-            margin-bottom: 10px;
-        }
-        button {
-            padding: 10px;
-            border: none;
-            background-color: #0056b3;
-            color: white;
-            cursor: pointer;
-            border-radius: 5px;
-            transition: background-color 0.3s;
-        }
-        button:hover {
-            background-color: #004494;
-        }
-        .button {
-            display: inline-block;
-            padding: 10px 20px;
-            border: none;
-            background-color: #0056b3;
-            color: white;
-            cursor: pointer;
-            border-radius: 5px;
-            text-decoration: none;
-            text-align: center;
-        }
-        .button:hover {
-            background-color: #004494;
-        }
-    </style>
-</head>
-<body>
-    <h1>Book Recognition</h1>
+{% extends "base.html" %}
 
-    {% if error %}
-    <p style="color: #b00020;">{{ error }}</p>
-    {% endif %}
+{% block content %}
+<div class="card">
+    {% if error %}<div class="error">{{ error }}</div>{% endif %}
 
-    <form action="/" method="post" enctype="multipart/form-data">
-        <label for="file">Upload an image:</label>
-        <input type="file" id="file" name="file" required>
-        <button type="submit">Submit</button>
+    <form id="upload-form" method="POST" enctype="multipart/form-data">
+        <label id="drop" for="file" class="dropzone">
+            <input type="file" id="file" name="file" accept="image/*" hidden>
+            <div id="prompt" class="dz-prompt">
+                <div class="dz-icon">🖼️</div>
+                <div class="dz-title">Drop an image here or <span class="link">browse</span></div>
+                <div class="muted">Cover or a photo of a page · JPG, PNG, WebP</div>
+            </div>
+            <img id="preview" class="preview" alt="preview" hidden>
+        </label>
+
+        <button id="submit" class="btn" type="submit" disabled>
+            <span id="submit-label">Identify book</span>
+        </button>
     </form>
-</body>
-</html>
+
+    <details class="how">
+        <summary>How it works</summary>
+        <p class="muted">
+            The image is read with OCR, then searched against Open Library. A cover is matched
+            by its title/author; a photo of an interior page is matched by its full text. No
+            data is stored beyond your current session.
+        </p>
+    </details>
+</div>
+
+<style>
+    .dropzone {
+        display: flex; align-items: center; justify-content: center;
+        min-height: 200px; padding: 20px; margin-bottom: 16px;
+        border: 2px dashed var(--border); border-radius: 14px;
+        background: var(--accent-soft); cursor: pointer; text-align: center;
+        transition: border-color .15s ease, background .15s ease;
+    }
+    .dropzone.dragover { border-color: var(--accent); }
+    .dz-icon { font-size: 34px; }
+    .dz-title { font-weight: 600; margin: 8px 0 2px; }
+    .link { color: var(--accent); text-decoration: underline; }
+    .preview { max-width: 100%; max-height: 340px; border-radius: 10px; }
+    .how { margin-top: 18px; }
+    .how summary { cursor: pointer; color: var(--muted); font-size: 14px; }
+    .how p { margin: 10px 0 0; }
+</style>
+
+<script>
+    (function () {
+        const drop = document.getElementById('drop');
+        const input = document.getElementById('file');
+        const preview = document.getElementById('preview');
+        const prompt = document.getElementById('prompt');
+        const submit = document.getElementById('submit');
+        const form = document.getElementById('upload-form');
+        const label = document.getElementById('submit-label');
+
+        function showFile(file) {
+            if (!file || !file.type.startsWith('image/')) return;
+            const url = URL.createObjectURL(file);
+            preview.src = url;
+            preview.hidden = false;
+            prompt.hidden = true;
+            submit.disabled = false;
+        }
+
+        input.addEventListener('change', () => showFile(input.files[0]));
+
+        ['dragenter', 'dragover'].forEach(evt =>
+            drop.addEventListener(evt, e => { e.preventDefault(); drop.classList.add('dragover'); }));
+        ['dragleave', 'drop'].forEach(evt =>
+            drop.addEventListener(evt, e => { e.preventDefault(); drop.classList.remove('dragover'); }));
+        drop.addEventListener('drop', e => {
+            const file = e.dataTransfer.files[0];
+            if (file) { input.files = e.dataTransfer.files; showFile(file); }
+        });
+
+        form.addEventListener('submit', () => {
+            submit.disabled = true;
+            label.textContent = 'Searching…';
+            const s = document.createElement('span');
+            s.className = 'spinner';
+            submit.prepend(s);
+        });
+    })();
+</script>
+{% endblock %}
