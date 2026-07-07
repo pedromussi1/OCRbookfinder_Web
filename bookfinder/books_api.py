@@ -224,12 +224,19 @@ class OpenLibraryFullTextClient(SearchClient):
                 return [Candidate.from_dict(d) for d in json.load(fh)]
         if self.offline:
             return []  # resilient: a partial cache still yields an aggregate answer
-        candidates = self._fetch(window)
+        try:
+            candidates = self._fetch(window)
+        except requests.RequestException:
+            # A single slow/failed window shouldn't stall or break the whole batch —
+            # aggregation across the other windows still yields an answer.
+            return []
         self._write_cache(path, candidates)
         return candidates
 
+    _REQUEST_TIMEOUT = 8  # per-window cap so the slowest request can't drag out the batch
+
     def _fetch(self, window: str) -> list[Candidate]:
-        response = requests.get(self._URL, params={"q": window}, timeout=30)
+        response = requests.get(self._URL, params={"q": window}, timeout=self._REQUEST_TIMEOUT)
         response.raise_for_status()
         hits = response.json().get("hits", {}).get("hits", [])
         out = []

@@ -31,3 +31,17 @@ def test_fulltext_offline_missing_windows_return_empty():
     # Offline with an empty cache: windows are skipped, not raised — resilient by design.
     client = OpenLibraryFullTextClient(offline=True)
     assert client.search("one two three four five six seven eight") == []
+
+
+def test_fulltext_request_failure_is_isolated(monkeypatch):
+    # A failing/slow window request must not crash the whole batch.
+    import requests
+
+    client = OpenLibraryFullTextClient()
+
+    def boom(window):
+        raise requests.RequestException("network down")
+
+    monkeypatch.setattr(client, "_fetch", boom)
+    # All windows "fail" but search returns cleanly (empty), never raises.
+    assert client.search("one two three four five six seven eight nine ten") == []

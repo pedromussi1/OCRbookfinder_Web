@@ -15,6 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     straight to full-text, saving a round-trip.
 - Net effect: page identification ~4s → ~2s cold; covers ~0.75s. (Originally ~14s.)
 
+### Fixed
+- A single slow or failed full-text window request no longer stalls or crashes the whole
+  identification: per-window requests are now capped at 8s and network errors are isolated,
+  so aggregation proceeds over the windows that did return.
+
 ## [2.2.1] - 2026-07-07
 
 ### Changed
