@@ -42,11 +42,16 @@ Paste the printed table into the README. On real photos you should see:
 - **preprocess** rung > **baseline** rung (OpenCV cleanup helps noisy OCR), and
 - **fuzzy/semantic/hybrid** > **search-engine order** (ranking fixes wrong-first-hit).
 
-## Why not interior pages?
+## Covers vs. interior pages
 
-The 5 images the original app shipped with (now under `static/uploads/`) are photos of
-**interior prose pages** — Dune, The Iliad, and an Art of War intro. Open Library (and
-title search generally) matches metadata, not full text, so those queries return **zero**
-candidates. Full-text page identification is a different problem needing a full-text
-backend (e.g. Google Books full-text search) and is out of scope for this cover finder.
-They remain in the repo as a documented limitation example, not as eval data.
+The tool handles **both**, via two search modes chosen automatically:
+
+- **Cover photos** → metadata search on the OCR'd title/author (the ablation experiment
+  above measures this path).
+- **Interior prose pages** (like the 5 images originally shipped under `static/uploads/` —
+  Dune, The Iliad, Art of War) → full-text "search inside" with windowed queries + edition
+  aggregation (see the README). These are identified correctly but are not part of the
+  metadata-retrieval ablation, since they exercise a different backend.
+
+If you collect a page-photo set, label it the same way (ground-truth `title`); `type=page`
+distinguishes it from covers.

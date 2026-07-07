@@ -16,3 +16,6 @@ data/cache/
 .DS_Store
 .idea/
 .vscode/
+
+# Runtime image uploads (the 5 labeled seed images stay tracked)
+static/uploads/

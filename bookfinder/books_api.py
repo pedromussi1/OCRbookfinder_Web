@@ -34,6 +34,7 @@ class Candidate:
     authors: list[str]
     description: str
     volume_id: str
+    relevance: float = 0.0  # backend's own score (used by full-text aggregation)
 
     @property
     def text_blob(self) -> str:
@@ -45,7 +46,9 @@ class Candidate:
 
     @classmethod
     def from_dict(cls, d: dict) -> "Candidate":
-        return cls(**d)
+        # Tolerate cache files written before a field existed / was removed.
+        fields = {"title", "subtitle", "authors", "description", "volume_id", "relevance"}
+        return cls(**{k: v for k, v in d.items() if k in fields})
 
 
 class SearchClient:
@@ -157,8 +160,88 @@ class GoogleBooksClient(SearchClient):
         return out
 
 
+class OpenLibraryFullTextClient(SearchClient):
+    """openlibrary.org "search inside" — full-text search over scanned books.
+
+    Unlike metadata search, this matches the *contents* of books, so a photo of an interior
+    prose page can be traced back to its book. Keyless.
+
+    The endpoint does strict AND/phrase matching, so a single OCR error in a long query
+    zeroes the results. To stay robust, we split the OCR text into many short overlapping
+    windows and search each: error-free windows still match, and the correct book
+    accumulates across them. Pair with the AggregateRanker, which sums a book's editions
+    (and window hits) to outweigh one-off quotation anthologies.
+    """
+
+    provider = "openlibrary_fulltext"
+    _URL = "https://openlibrary.org/search/inside.json"
+
+    _WINDOW_SIZE = 6        # words per search window
+    _WINDOW_STRIDE = 4      # overlap step between windows
+    _MAX_WINDOWS = 15       # cap API calls per identification
+    _MAX_WORDS = 120        # only scan this far into the page
+
+    def search(self, query: str) -> list[Candidate]:
+        """Windowed full-text search: many short queries, results concatenated."""
+        words = query.split()
+        if not words:
+            return []
+
+        windows: list[str] = []
+        end = min(len(words), self._MAX_WORDS)
+        i = 0
+        while i + self._WINDOW_SIZE <= end and len(windows) < self._MAX_WINDOWS:
+            windows.append(" ".join(words[i:i + self._WINDOW_SIZE]))
+            i += self._WINDOW_STRIDE
+        if not windows:  # text shorter than one window
+            windows = [" ".join(words)]
+
+        out: list[Candidate] = []
+        for window in windows:
+            out.extend(self._search_window(window))
+        return out
+
+    def _search_window(self, window: str) -> list[Candidate]:
+        """Search one window, with per-window caching. Skips (not fails) on offline miss."""
+        path = self._cache_path(window)
+        if os.path.exists(path):
+            with open(path, "r", encoding="utf-8") as fh:
+                return [Candidate.from_dict(d) for d in json.load(fh)]
+        if self.offline:
+            return []  # resilient: a partial cache still yields an aggregate answer
+        candidates = self._fetch(window)
+        with open(path, "w", encoding="utf-8") as fh:
+            json.dump([c.to_dict() for c in candidates], fh)
+        return candidates
+
+    def _fetch(self, window: str) -> list[Candidate]:
+        response = requests.get(self._URL, params={"q": window}, timeout=30)
+        response.raise_for_status()
+        hits = response.json().get("hits", {}).get("hits", [])
+        out = []
+        for hit in hits[: max(self.max_results, 20)]:
+            fields = hit.get("fields", {})
+            title = (fields.get("meta_title") or [""])[0]
+            authors = fields.get("meta_creatorSorter") or []
+            identifier = (fields.get("identifier") or [""])[0]
+            highlight = hit.get("highlight", {}).get("text", [])
+            snippet = highlight[0] if highlight else ""
+            out.append(
+                Candidate(
+                    title=title,
+                    subtitle="",
+                    authors=list(authors),
+                    description=snippet,
+                    volume_id=identifier,
+                    relevance=float(hit.get("_score", 0.0)),
+                )
+            )
+        return out
+
+
 PROVIDERS: dict[str, type[SearchClient]] = {
     "openlibrary": OpenLibraryClient,
+    "openlibrary_fulltext": OpenLibraryFullTextClient,
     "google": GoogleBooksClient,
 }
 
