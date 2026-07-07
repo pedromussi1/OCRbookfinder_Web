@@ -1,5 +1,8 @@
 """Flask app: upload a book photo, get the identified title.
 
+Deployed live at https://huggingface.co/spaces/Zao0531/ocr-bookfinder
+(auto-synced from this repo's main branch via .github/workflows/sync-hf-space.yml).
+
 Rewritten to use the ``bookfinder`` pipeline (cross-platform Tesseract, OpenCV
 preprocessing, and a real ranker) instead of the original grayscale-only OCR with the
 broken ``max(..., key=lambda x: x.get('relevance', 0))`` ranking that always returned
