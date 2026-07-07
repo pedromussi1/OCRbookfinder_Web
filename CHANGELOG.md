@@ -4,6 +4,17 @@ All notable changes to this project are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.2] - 2026-07-07
+
+### Changed
+- Faster identification with the same accuracy:
+  - Full-text page search capped at 10 windows (down from 15) with concurrency raised to
+    match, so all window queries run in a single batch. Tuning showed easy pages resolve on
+    ~2 windows and the hardest test page on ~8, so 10 keeps a safe margin.
+  - Obvious interior pages (long OCR text) now skip the futile metadata search and go
+    straight to full-text, saving a round-trip.
+- Net effect: page identification ~4s → ~2s cold; covers ~0.75s. (Originally ~14s.)
+
 ## [2.2.1] - 2026-07-07
 
 ### Changed
@@ -68,6 +79,7 @@ measured retrieval experiment.
 - README rewritten around the experiment, with an honest results table and documented
   limitations (interior-page images, synthetic demo covers).
 
+[2.2.2]: https://github.com/pedromussi1/OCRbookfinder_Web/releases/tag/v2.2.2
 [2.2.1]: https://github.com/pedromussi1/OCRbookfinder_Web/releases/tag/v2.2.1
 [2.2.0]: https://github.com/pedromussi1/OCRbookfinder_Web/releases/tag/v2.2.0
 [2.1.0]: https://github.com/pedromussi1/OCRbookfinder_Web/releases/tag/v2.1.0

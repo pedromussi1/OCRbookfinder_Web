@@ -76,16 +76,24 @@ class BookFinder:
             )
         return self._fulltext_client
 
+    # A cover OCRs to a few words (title + author); an interior page OCRs to a long
+    # paragraph. Past this many words we treat it as a page and skip the (futile, ~1s)
+    # metadata search, going straight to full-text.
+    _PAGE_WORD_THRESHOLD = 20
+
     def identify(self, image_path: str) -> BookResult:
         raw_text = extract_text(image_path, self.config.preprocess)
         query = normalize_query(raw_text)
 
-        candidates = self.client.search(query)
+        looks_like_page = len(query.split()) > self._PAGE_WORD_THRESHOLD
+
+        # Covers: metadata (title/author) search. Skip it for obvious pages to save a round-trip.
+        candidates = [] if looks_like_page else self.client.search(query)
         if candidates:
             ranked = self.ranker.rank(query, candidates)
         elif self.config.fulltext_fallback:
-            # No metadata match — likely an interior page. Search full text and aggregate
-            # editions so the real book beats one-off quotation anthologies.
+            # A page (or a cover with no metadata hit): full-text search + edition
+            # aggregation so the real book beats one-off quotation anthologies.
             fulltext = self._fulltext().search(query)
             ranked = _resolve_ranker("aggregate").rank(query, fulltext)
         else:

@@ -186,9 +186,12 @@ class OpenLibraryFullTextClient(SearchClient):
 
     _WINDOW_SIZE = 6        # words per search window
     _WINDOW_STRIDE = 4      # overlap step between windows
-    _MAX_WINDOWS = 15       # cap API calls per identification
+    # 10 windows was the sweet spot in testing: easy pages (Dune, Iliad) resolve on ~2
+    # windows, harder ones (an Art of War intro) needed ~8, so 10 gives a safe buffer.
+    _MAX_WINDOWS = 10       # cap API calls per identification
     _MAX_WORDS = 120        # only scan this far into the page
-    _CONCURRENCY = 8        # window queries to run in parallel (they are independent I/O)
+    # Match concurrency to the window cap so all queries run in ONE batch (one round-trip).
+    _CONCURRENCY = 10
 
     def search(self, query: str) -> list[Candidate]:
         """Windowed full-text search: many short queries, run concurrently."""
