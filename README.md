@@ -6,6 +6,8 @@
 
 <p align="center">Upload a photo of a book (cover or page); the app OCRs the text, searches a book database, and <b>ranks</b> the candidates to identify the title.</p>
 
+<p align="center"><b>🚀 Live demo:</b> <a href="https://huggingface.co/spaces/Zao0531/ocr-bookfinder">huggingface.co/spaces/Zao0531/ocr-bookfinder</a></p>
+
 Identifying a book from an OCR'd cover is a small **retrieval** problem: the search API
 returns ~10 candidates, and the real question is *which one is correct*. This project
 treats that ranking step as a measurable experiment — and along the way fixes a ranking
