@@ -23,6 +23,9 @@ MAX_CONTENT_LENGTH = 10 * 1024 * 1024  # 10 MB cap on uploads
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 app.config["MAX_CONTENT_LENGTH"] = MAX_CONTENT_LENGTH
 
+# Ensure the upload dir exists at import time (so it works under gunicorn, not just __main__).
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
 # Default to the fuzzy ranker (fast, no torch); set BOOKFINDER_RANKER to override.
 finder = BookFinder(PipelineConfig(ranker=os.environ.get("BOOKFINDER_RANKER", "fuzzy")))
 
@@ -47,8 +50,14 @@ def index():
         file.save(file_path)
 
         result = finder.identify(file_path)
+        best = result.ranked[0].candidate if result.ranked else None
         return render_template(
-            "result.html", text=result.raw_text, best_match=result.summary(), image=stored_name
+            "result.html",
+            image=stored_name,
+            raw_text=result.raw_text,
+            found=best is not None,
+            title=best.title if best else None,
+            authors=(", ".join(best.authors) if best and best.authors else "Unknown author"),
         )
 
     return render_template("index.html")
